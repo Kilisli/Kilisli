@@ -1,195 +1,85 @@
-:root {
-    --primary-color: #007bff; /* Mavi */
-    --accent-color: #28a745; /* Yeşil */
-    --bg-light: #f8f9fa;
-    --bg-dark: #343a40;
-    --text-light: #f8f9fa;
-    --text-dark: #343a40;
-    --menu-bg: #495057; /* Koyu gri menü */
-    --menu-item-hover: #6c757d; /* Gri hover */
-    --menu-item-active: #0056b3; /* Koyu mavi aktif */
-    --border-color: #dee2e6;
-}
-
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: var(--bg-light);
-    color: var(--text-dark);
-    line-height: 1.6;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+    background: #f4f4f4;
 }
 
-/* Header */
 .main-header {
-    background-color: var(--primary-color);
-    color: var(--text-light);
-    padding: 1rem 2rem;
-    text-align: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    background: #222;
+    color: #fff;
+    padding: 10px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.main-header h1 {
-    margin: 0;
-    font-size: 1.8rem;
-}
-
-/* Menu Toggle Button (Mobil İçin) */
 .menu-toggle {
-    display: none; /* Masaüstünde gizle */
-    background-color: var(--accent-color);
-    color: var(--text-light);
+    font-size: 20px;
+    background: none;
+    color: #fff;
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 5px;
     cursor: pointer;
-    font-size: 1.2rem;
 }
 
-/* Ana İçerik Konteyneri */
 .container {
     display: flex;
-    flex-grow: 1;
-    max-width: 1200px;
-    margin: 1.5rem auto;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    overflow: hidden; /* İçerik taşmasını engelle */
+    flex-direction: row;
 }
 
-/* Kanal Menüsü (Aside) */
 .channel-menu {
-    flex: 0 0 250px; /* Sabit genişlik */
-    background-color: var(--menu-bg);
-    color: var(--text-light);
-    padding: 1.5rem 0;
-    border-right: 1px solid var(--border-color);
-    overflow-y: auto; /* Kanal listesi uzunsa kaydırma çubuğu */
+    width: 250px;
+    background: #eee;
+    padding: 20px;
 }
 
-.channel-menu h2 {
-    text-align: center;
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-    font-size: 1.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding-bottom: 1rem;
-}
-
-#channel-list {
+.channel-menu ul {
     list-style: none;
     padding: 0;
-    margin: 0;
 }
 
-#channel-list li a {
+.channel-menu a {
     display: block;
-    padding: 0.8rem 1.5rem;
+    padding: 8px;
     text-decoration: none;
-    color: var(--text-light);
-    font-size: 1rem;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    color: #333;
 }
 
-#channel-list li a:hover {
-    background-color: var(--menu-item-hover);
-}
-
-#channel-list li a.active {
-    background-color: var(--menu-item-active);
+.channel-menu a.active {
+    background: #ccc;
     font-weight: bold;
-    color: #fff; /* Active kanal metin rengi */
 }
 
-/* Player Konteyneri (Main) */
 .player-container {
     flex-grow: 1;
-    padding: 1.5rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #000; /* Video arka planı siyah */
-}
-
-/* Video.js Oynatıcı Stilleri */
-.video-js {
-    width: 100% !important; /* Genişliği esnek yap */
-    height: auto !important; /* Yüksekliği otomatik ayarla */
-    max-height: 70vh; /* Ekranın %70'inden fazla olmasın */
-    background-color: #000;
-}
-
-/* Footer */
-.main-footer {
-    background-color: var(--bg-dark);
-    color: var(--text-light);
+    padding: 20px;
+    background: #fff;
     text-align: center;
-    padding: 1rem;
-    margin-top: auto; /* Sayfanın altına sabitle */
 }
 
-/* ================== Mobil Uyum (Responsive Design) ================== */
+.video-js {
+    width: 100% !important;
+    max-width: 800px;
+    height: 450px !important;
+    margin: 0 auto;
+}
+
+.main-footer {
+    background: #222;
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+}
+
 @media (max-width: 768px) {
-    .main-header {
-        justify-content: space-between;
-    }
-    .main-header h1 {
-        font-size: 1.5rem;
-    }
-    .menu-toggle {
-        display: block; /* Mobil görünümde göster */
-    }
-
     .container {
-        flex-direction: column; /* Menü ve oynatıcı alt alta gelsin */
-        margin: 1rem auto;
-        padding: 0; /* Konteyner padding'ini kaldır */
+        flex-direction: column;
     }
-
     .channel-menu {
-        flex: 0 0 auto; /* Sabit genişliği kaldır */
-        width: 100%; /* Tam genişlik */
-        padding: 1rem 0;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-        max-height: 60vh; /* Menü çok uzun olmasın */
-        transform: translateX(-100%); /* Başlangıçta menüyü gizle */
-        transition: transform 0.3s ease-in-out;
-        position: absolute; /* Oynatıcının üzerine binsin */
-        top: 0; /* Header altından başla */
-        left: 0;
-        z-index: 1000; /* En önde olsun */
-        box-shadow: 2px 0 5px rgba(0,0,0,0.3);
-    }
-
-    .channel-menu.open {
-        transform: translateX(0); /* Menüyü aç */
-    }
-
-    .channel-menu h2 {
-        padding-left: 1.5rem;
-        text-align: left;
-    }
-
-    #channel-list li a {
-        padding: 0.6rem 1rem;
-        font-size: 0.95rem;
-    }
-
-    .player-container {
-        padding: 1rem;
         width: 100%;
-        box-sizing: border-box; /* Padding genişliğe dahil */
+        display: none;
     }
-
-    .video-js {
-        max-height: 60vh; /* Mobil cihazlarda daha az yer kaplasın */
+    .channel-menu.open {
+        display: block;
     }
 }
