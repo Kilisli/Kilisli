@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canlı TV - M3U Player</title>
-    
+    <title>Canlı TV - M3U8 Player</title>
+
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
-    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <header class="main-header">
         <h1>Canlı Yayın Kanalları</h1>
         <button id="menu-toggle" class="menu-toggle">☰ Menü</button>
@@ -19,32 +17,22 @@
     <div class="container">
         <aside id="channel-menu" class="channel-menu">
             <h2>Kanallar</h2>
-            <ul id="channel-list">
-                </ul>
+            <ul id="channel-list"></ul>
         </aside>
 
         <main class="player-container">
-            <video
-                id="my-video"
-                class="video-js vjs-default-skin vjs-big-play-centered"
-                controls
-                preload="auto"
-                data-setup='{}'
-            >
-                <p class="vjs-no-js">
-                    Videoyu izlemek için lütfen JavaScript'i etkinleştirin ve HTML5 videoyu destekleyen bir tarayıcı kullanın.
-                </p>
+            <video id="my-video" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="auto" data-setup="{}">
+                <p class="vjs-no-js">Videoyu izlemek için JavaScript'i etkinleştirin ve HTML5 video destekleyen bir tarayıcı kullanın.</p>
             </video>
         </main>
     </div>
 
     <footer class="main-footer">
-        <p>&copy; 2024 Canlı TV. Tüm Hakları Saklıdır.</p>
+        <p>&copy; 2025 Canlı TV. Tüm Hakları Saklıdır.</p>
     </footer>
 
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script src="https://unpkg.com/@videojs/http-streaming/dist/videojs-http-streaming.min.js"></script>
-
     <script src="script.js"></script>
 </body>
 </html>
