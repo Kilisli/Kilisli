@@ -1,45 +1,50 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>M3U8 Yayın Oynatıcı</title>
-
-  <!-- Video.js CSS -->
-  <link href="https://vjs.zencdn.net/8.9.0/video-js.css" rel="stylesheet" />
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f0f0f0;
-      padding: 20px;
-    }
-    h1 {
-      color: #333;
-    }
-    #player-container {
-      max-width: 800px;
-      margin: auto;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canlı TV - M3U Player</title>
+    
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <h1>Canlı Yayın Oynatıcı</h1>
-  <p>Aşağıda seçtiğiniz m3u8 yayın oynatılacaktır:</p>
+    <header class="main-header">
+        <h1>Canlı Yayın Kanalları</h1>
+        <button id="menu-toggle" class="menu-toggle">☰ Menü</button>
+    </header>
 
-  <div id="player-container">
-    <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="720" height="400"
-      data-setup='{}'>
-      <source src="https://meclistv-live.ercdn.net/meclistv/meclistv_720p.m3u8" type="application/x-mpegURL" />
-   
-   Tarayıcınız HTML5 video oynatmayı desteklemiyor.
-    </video>
-  </div>
+    <div class="container">
+        <aside id="channel-menu" class="channel-menu">
+            <h2>Kanallar</h2>
+            <ul id="channel-list">
+                </ul>
+        </aside>
 
-  <!-- Video.js JS -->
-  <script src="https://vjs.zencdn.net/8.9.0/video.min.js"></script>
+        <main class="player-container">
+            <video
+                id="my-video"
+                class="video-js vjs-default-skin vjs-big-play-centered"
+                controls
+                preload="auto"
+                data-setup='{}'
+            >
+                <p class="vjs-no-js">
+                    Videoyu izlemek için lütfen JavaScript'i etkinleştirin ve HTML5 videoyu destekleyen bir tarayıcı kullanın.
+                </p>
+            </video>
+        </main>
+    </div>
 
+    <footer class="main-footer">
+        <p>&copy; 2024 Canlı TV. Tüm Hakları Saklıdır.</p>
+    </footer>
+
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script src="https://unpkg.com/@videojs/http-streaming/dist/videojs-http-streaming.min.js"></script>
+
+    <script src="script.js"></script>
 </body>
 </html>
