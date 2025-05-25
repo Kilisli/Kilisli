@@ -542,14 +542,14 @@
             .then(content => {
                 const entries = parseM3U(content);
                 if (entries.length === 0) {
-                    console.warn("channel.txt dosyasında playlist bulunamadı veya ayrıştırılamadı.");
+                    console.warn("channels.txt dosyasında playlist bulunamadı veya ayrıştırılamadı.");
                     return;
                 }
                 populatePlaylist(entries);
                 // İlk kanal otomatik olarak populatePlaylist içinde oynatılacak
             })
             .catch(error => {
-                console.error(`channel.txt yüklenirken hata oluştu: ${error.message}`);
+                console.error(`channels.txt yüklenirken hata oluştu: ${error.message}`);
                 // Hata durumunda kontrol elemanlarını etkinleştirmemek veya hata mesajı göstermek isteyebilirsiniz.
             });
      });
