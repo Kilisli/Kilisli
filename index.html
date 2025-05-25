@@ -525,14 +525,11 @@
           });
     });
 
-     // Sayfa ilk yüklendiğinde kontroller zaten görünür (CSS varsayılanı).
-     // Kullanıcı bir yayın seçene kadar görünür kalacak.
-
-     // Sayfa yüklendiğinde channel.txt dosyasını otomatik olarak yükle ve oynat
+     // Sayfa yüklendiğinde belirtilen URL'den playlisti otomatik yükle ve oynat
      document.addEventListener('DOMContentLoaded', () => {
-        const channelTxtUrl = 'channel.txt'; // channel.txt dosyasının yolu
+        const defaultM3UPlaylistUrl = "https://raw.githubusercontent.com/Sakubaba00/saku/refs/heads/main/playlist4.m3u";
 
-        fetch(channelTxtUrl)
+        fetch(defaultM3UPlaylistUrl)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -542,18 +539,17 @@
             .then(content => {
                 const entries = parseM3U(content);
                 if (entries.length === 0) {
-                    console.warn("channel.txt dosyasında playlist bulunamadı veya ayrıştırılamadı.");
+                    console.warn(`URL'den (${defaultM3UPlaylistUrl}) playlist bulunamadı veya ayrıştırılamadı.`);
                     return;
                 }
                 populatePlaylist(entries);
                 // İlk kanal otomatik olarak populatePlaylist içinde oynatılacak
             })
             .catch(error => {
-                console.error(`channel.txt yüklenirken hata oluştu: ${error.message}`);
+                console.error(`M3U playlisti yüklenirken hata oluştu (${defaultM3UPlaylistUrl}): ${error.message}`);
                 // Hata durumunda kontrol elemanlarını etkinleştirmemek veya hata mesajı göstermek isteyebilirsiniz.
             });
      });
-
 
   </script>
 </body>
