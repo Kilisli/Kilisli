@@ -528,9 +528,32 @@
      // Sayfa ilk yüklendiğinde kontroller zaten görünür (CSS varsayılanı).
      // Kullanıcı bir yayın seçene kadar görünür kalacak.
 
-     // Başlangıçta video elementini gizle veya placeholder göster
-     // video.style.display = 'none'; // İlk yüklemede videoyu gizle
-     // Alternatif olarak, CSS'de #video için bir placeholder veya başlangıç arka planı kullanabilirsiniz.
+     // Sayfa yüklendiğinde channel.txt dosyasını otomatik olarak yükle ve oynat
+     document.addEventListener('DOMContentLoaded', () => {
+        const channelTxtUrl = 'channel.txt'; // channel.txt dosyasının yolu
+
+        fetch(channelTxtUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(content => {
+                const entries = parseM3U(content);
+                if (entries.length === 0) {
+                    console.warn("channel.txt dosyasında playlist bulunamadı veya ayrıştırılamadı.");
+                    return;
+                }
+                populatePlaylist(entries);
+                // İlk kanal otomatik olarak populatePlaylist içinde oynatılacak
+            })
+            .catch(error => {
+                console.error(`channel.txt yüklenirken hata oluştu: ${error.message}`);
+                // Hata durumunda kontrol elemanlarını etkinleştirmemek veya hata mesajı göstermek isteyebilirsiniz.
+            });
+     });
+
 
   </script>
 </body>
