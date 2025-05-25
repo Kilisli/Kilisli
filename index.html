@@ -530,7 +530,7 @@
 
      // Sayfa yüklendiğinde channel.txt dosyasını otomatik olarak yükle ve oynat
      document.addEventListener('DOMContentLoaded', () => {
-        const channelTxtUrl = 'channels.txt'; // channel.txt dosyasının yolu
+        const channelTxtUrl = 'channel.txt'; // channel.txt dosyasının yolu
 
         fetch(channelTxtUrl)
             .then(response => {
@@ -542,14 +542,14 @@
             .then(content => {
                 const entries = parseM3U(content);
                 if (entries.length === 0) {
-                    console.warn("channels.txt dosyasında playlist bulunamadı veya ayrıştırılamadı.");
+                    console.warn("channel.txt dosyasında playlist bulunamadı veya ayrıştırılamadı.");
                     return;
                 }
                 populatePlaylist(entries);
                 // İlk kanal otomatik olarak populatePlaylist içinde oynatılacak
             })
             .catch(error => {
-                console.error(`channels.txt yüklenirken hata oluştu: ${error.message}`);
+                console.error(`channel.txt yüklenirken hata oluştu: ${error.message}`);
                 // Hata durumunda kontrol elemanlarını etkinleştirmemek veya hata mesajı göstermek isteyebilirsiniz.
             });
      });
