@@ -507,7 +507,7 @@
               const entries = parseM3U(content);
               if (entries.length === 0) {
                   alert("URL'den playlist bulunamadı veya ayrıştırılamadı."); // Bu alert kalabilir
-                  playlistSelect.innerHTML = "http://13.60.252.215:8000/playlist.m3u";
+                  playlistSelect.innerHTML = "";
                   groupSelect.innerHTML = '<option value="">Tüm Gruplar</option>';
                    groupSelect.disabled = true;
                    playlistSelect.disabled = true;
