@@ -507,7 +507,7 @@
               const entries = parseM3U(content);
               if (entries.length === 0) {
                   alert("URL'den playlist bulunamadı veya ayrıştırılamadı."); // Bu alert kalabilir
-                  playlistSelect.innerHTML = "";
+                  playlistSelect.innerHTML = "http://13.60.252.215:8000/playlist.m3u";
                   groupSelect.innerHTML = '<option value="">Tüm Gruplar</option>';
                    groupSelect.disabled = true;
                    playlistSelect.disabled = true;
@@ -527,7 +527,7 @@
 
      // Sayfa yüklendiğinde belirtilen URL'den playlisti otomatik yükle ve oynat
      document.addEventListener('DOMContentLoaded', () => {
-        const defaultM3UPlaylistUrl = "https://raw.githubusercontent.com/Sakubaba00/saku/refs/heads/main/playlist4.m3u";
+        const defaultM3UPlaylistUrl = "";
 
         fetch(defaultM3UPlaylistUrl)
             .then(response => {
