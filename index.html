@@ -527,7 +527,7 @@
 
      // Sayfa yüklendiğinde belirtilen URL'den playlisti otomatik yükle ve oynat
      document.addEventListener('DOMContentLoaded', () => {
-        const defaultM3UPlaylistUrl = "";
+        const defaultM3UPlaylistUrl = "http://13.60.252.215:8000/playlist.m3u";
 
         fetch(defaultM3UPlaylistUrl)
             .then(response => {
