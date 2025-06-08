@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>m3u8 Player</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 p-4 transition-colors" id="appBody">
+  <header class="text-center mb-6">
+    <h1 class="text-3xl font-bold mb-2">🎬 Canlı Kanal Oynatıcı</h1>
+    <p class="text-sm text-gray-600">channel.txt içeriğini otomatik çekip listeleme + manuel URL ekleme</p>
+    <div class="mt-2 flex justify-center gap-2">
+      <button id="toggleTheme" class="px-4 py-1 bg-gray-300 rounded">🌗 Tema Değiştir</button>
+      <button id="exportBtn" class="px-4 py-1 bg-green-500 text-white rounded">⬇️ Dışa Aktar</button>
+      <input type="file" id="importFile" class="hidden">
+      <label for="importFile" class="px-4 py-1 bg-blue-600 text-white rounded cursor-pointer">⬆️ İçe Aktar</label>
+    </div>
+  </header>
+
+  <div class="flex flex-col lg:flex-row gap-6">
+    <aside class="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 w-full lg:w-1/3 max-h-[80vh] overflow-y-auto">
+      <h2 class="text-lg font-semibold mb-4">Kanal Listesi</h2>
+      <input type="text" id="searchBox" placeholder="Kanal ara..." class="w-full p-2 border rounded mb-3">
+      <select id="channelGroup" class="w-full mb-4 p-2 border rounded">
+        <option disabled selected>Grup Seçiniz</option>
+      </select>
+      <ul id="channelList" class="space-y-2 mb-4"></ul>
+      <div class="mt-4">
+        <input type="text" id="manualUrl" placeholder="m3u8 linkini yapıştırın" class="w-full p-2 border rounded mb-2">
+        <button id="addBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">Ekle & Oynat</button>
+      </div>
+      <h3 class="text-sm mt-6 font-bold">⭐ Favoriler</h3>
+      <ul id="favoritesList" class="space-y-1 text-sm"></ul>
+    </aside>
+
+    <main class="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 w-full lg:w-2/3">
+      <video id="videoPlayer" controls class="w-full rounded-xl bg-black aspect-video"></video>
+      <h3 class="mt-4 font-semibold">📜 İzleme Geçmişi</h3>
+      <ul id="historyList" class="text-sm mt-2 space-y-1"></ul>
+    </main>
+  </div>
+
+  <script>
+    const channelListEl = document.getElementById('channelList');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const manualUrlInput = document.getElementById('manualUrl');
+    const addBtn = document.getElementById('addBtn');
+    const channelGroupSelect = document.getElementById('channelGroup');
+    const searchBox = document.getElementById('searchBox');
+    const favoritesList = document.getElementById('favoritesList');
+    const historyList = document.getElementById('historyList');
+    const toggleTheme = document.getElementById('toggleTheme');
+    const exportBtn = document.getElementById('exportBtn');
+    const importFile = document.getElementById('importFile');
+
+    const channelsByGroup = {};
+    const manualChannels = JSON.parse(localStorage.getItem('manualChannels') || '[]');
+    const favorites = new Set(JSON.parse(localStorage.getItem('favoriteChannels') || '[]'));
+    const history = JSON.parse(localStorage.getItem('watchHistory') || '[]');
+
+    function playUrl(url, name = '') {
+      videoPlayer.src = url;
+      videoPlayer.play().catch(e => console.error('Oynatma hatası:', e));
+      if (name) {
+        history.unshift({ name, url });
+        if (history.length > 10) history.pop();
+        localStorage.setItem('watchHistory', JSON.stringify(history));
+        renderHistory();
+      }
+    }
+
+    function updateLocalStorage() {
+      localStorage.setItem('manualChannels', JSON.stringify(manualChannels));
+      localStorage.setItem('favoriteChannels', JSON.stringify([...favorites]));
+    }
+
+    function renderFavorites() {
+      favoritesList.innerHTML = '';
+      [...favorites].forEach(url => {
+        const li = document.createElement('li');
+        li.textContent = url;
+        li.className = 'cursor-pointer hover:underline';
+        li.onclick = () => playUrl(url);
+        favoritesList.appendChild(li);
+      });
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = '';
+      history.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item.name;
+        li.className = 'cursor-pointer hover:underline';
+        li.onclick = () => playUrl(item.url);
+        historyList.appendChild(li);
+      });
+    }
+
+    function addChannelItem({group, name, url}, save = false, isManual = false) {
+      const li = document.createElement('li');
+      li.className = 'p-2 bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 rounded flex justify-between items-center';
+
+      const title = document.createElement('span');
+      title.textContent = `${name}`;
+      title.className = 'cursor-pointer';
+      title.addEventListener('click', () => playUrl(url, name));
+
+      const controls = document.createElement('div');
+      controls.className = 'flex gap-2 items-center';
+
+      const favBtn = document.createElement('button');
+      favBtn.textContent = favorites.has(url) ? '⭐' : '☆';
+      favBtn.className = 'text-xl';
+      favBtn.addEventListener('click', () => {
+        if (favorites.has(url)) {
+          favorites.delete(url);
+          favBtn.textContent = '☆';
+        } else {
+          favorites.add(url);
+          favBtn.textContent = '⭐';
+        }
+        updateLocalStorage();
+        renderFavorites();
+      });
+
+      controls.appendChild(favBtn);
+
+      if (isManual) {
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '🗑️';
+        delBtn.className = 'text-xl';
+        delBtn.addEventListener('click', () => {
+          li.remove();
+          const index = manualChannels.findIndex(c => c.url === url);
+          if (index !== -1) {
+            manualChannels.splice(index, 1);
+            updateLocalStorage();
+          }
+        });
+        controls.appendChild(delBtn);
+      }
+
+      li.appendChild(title);
+      li.appendChild(controls);
+      channelListEl.appendChild(li);
+
+      if (save) {
+        manualChannels.push({group, name, url});
+        updateLocalStorage();
+      }
+    }
+
+    function updateGroupDropdown() {
+      channelGroupSelect.innerHTML = '<option disabled selected>Grup Seçiniz</option>';
+      for (const group in channelsByGroup) {
+        const option = document.createElement('option');
+        option.value = group;
+        option.textContent = group;
+        channelGroupSelect.appendChild(option);
+      }
+    }
+
+    channelGroupSelect.addEventListener('change', (e) => {
+      const group = e.target.value;
+      renderChannels(channelsByGroup[group]);
+    });
+
+    function renderChannels(channelArray) {
+      channelListEl.innerHTML = '';
+      const filter = searchBox.value.toLowerCase();
+      channelArray.filter(c => c.name.toLowerCase().includes(filter))
+                  .forEach(c => addChannelItem(c));
+    }
+
+    searchBox.addEventListener('input', () => {
+      const group = channelGroupSelect.value;
+      if (channelsByGroup[group]) {
+        renderChannels(channelsByGroup[group]);
+      }
+    });
+
+    fetch('channel.txt')
+      .then(res => res.text())
+      .then(text => {
+        const lines = text.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (line.startsWith('#EXTINF')) {
+            const match = line.match(/group-title="(.*?)".*?,(.*)/);
+            if (match) {
+              const group = match[1];
+              const name = match[2];
+              const url = lines[i + 1]?.trim();
+              if (!channelsByGroup[group]) channelsByGroup[group] = [];
+              channelsByGroup[group].push({ group, name, url });
+            }
+          }
+        }
+        updateGroupDropdown();
+      })
+      .catch(err => console.error('channel.txt yüklenemedi:', err));
+
+    addBtn.addEventListener('click', () => {
+      const url = manualUrlInput.value.trim();
+      if (url && url.endsWith('.m3u8')) {
+        const name = prompt('Kanal adı giriniz:', url) || url;
+        const group = 'Manuel';
+        addChannelItem({ group, name, url }, true, true);
+        playUrl(url, name);
+        manualUrlInput.value = '';
+      } else {
+        alert('Geçerli bir .m3u8 URL girin.');
+      }
+    });
+
+    manualChannels.forEach(chan => addChannelItem(chan, false, true));
+    renderFavorites();
+    renderHistory();
+
+    toggleTheme.addEventListener('click', () => {
+      document.getElementById('appBody').classList.toggle('dark');
+    });
+
+    exportBtn.addEventListener('click', () => {
+      const data = { manualChannels, favorites: [...favorites], history };
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'kanallar.json';
+      link.click();
+    });
+
+    importFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const data = JSON.parse(reader.result);
+        if (data.manualChannels) {
+          data.manualChannels.forEach(c => addChannelItem(c, true, true));
+        }
+        if (data.favorites) {
+          data.favorites.forEach(url => favorites.add(url));
+        }
+        if (data.history) {
+          localStorage.setItem('watchHistory', JSON.stringify(data.history));
+        }
+        updateLocalStorage();
+        renderFavorites();
+        renderHistory();
+      };
+      reader.readAsText(file);
+    });
+  </script>
+</body>
+</html>
