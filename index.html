@@ -20,21 +20,7 @@
 
   <main class="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 mb-6 relative">
     <video id="videoPlayer" controls class="w-full rounded-xl bg-black aspect-video"></video>
-    <div class="absolute top-1/2 left-0 right-0 flex justify-between transform -translate-y-1/2 px-4">
-      <button id="prevChannelBtn" class="bg-gray-800 text-white p-2 rounded-full opacity-75 hover:opacity-100">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-        </svg>
-      </button>
-      <button id="nextChannelBtn" class="bg-gray-800 text-white p-2 rounded-full opacity-75 hover:opacity-100">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-        </svg>
-      </button>
-    </div>
-    <h3 class="mt-4 font-semibold">📜 İzleme Geçmişi</h3>
-    <ul id="historyList" class="text-sm mt-2 space-y-1"></ul>
-  </main>
+    </main>
 
   <div class="flex flex-col lg:flex-row gap-6">
     <aside class="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 w-full lg:w-1/3 max-h-[80vh] overflow-y-auto">
@@ -47,6 +33,9 @@
       <div class="mt-4">
         <input type="text" id="manualUrl" placeholder="m3u8 linkini yapıştırın" class="w-full p-2 border rounded mb-2">
         <button id="addBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">Ekle & Oynat</button>
+        
+        <input type="text" id="m3uPlaylistUrl" placeholder="M3U çalma listesi URL'sini yapıştırın" class="w-full p-2 border rounded mt-4 mb-2">
+        <button id="loadM3uBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded">M3U Listesini Yükle</button>
       </div>
       <h3 class="text-sm mt-6 font-bold">⭐ Favoriler</h3>
       <ul id="favoritesList" class="space-y-1 text-sm"></ul>
@@ -62,33 +51,19 @@
     const channelGroupSelect = document.getElementById('channelGroup');
     const searchBox = document.getElementById('searchBox');
     const favoritesList = document.getElementById('favoritesList');
-    const historyList = document.getElementById('historyList');
     const toggleTheme = document.getElementById('toggleTheme');
     const exportBtn = document.getElementById('exportBtn');
     const importFile = document.getElementById('importFile');
-    const prevChannelBtn = document.getElementById('prevChannelBtn');
-    const nextChannelBtn = document.getElementById('nextChannelBtn');
-
+    const m3uPlaylistUrlInput = document.getElementById('m3uPlaylistUrl');
+    const loadM3uBtn = document.getElementById('loadM3uBtn');
 
     const channelsByGroup = {};
     const manualChannels = JSON.parse(localStorage.getItem('manualChannels') || '[]');
     const favorites = new Set(JSON.parse(localStorage.getItem('favoriteChannels') || '[]'));
-    const history = JSON.parse(localStorage.getItem('watchHistory') || '[]');
-    let currentHistoryIndex = -1; // New variable to track current position in history
 
-    function playUrl(url, name = '') {
+    function playUrl(url) {
       videoPlayer.src = url;
       videoPlayer.play().catch(e => console.error('Oynatma hatası:', e));
-      if (name) {
-        // Check if the current URL is already at the beginning of history to avoid duplicates
-        if (history.length === 0 || history[0].url !== url) {
-          history.unshift({ name, url });
-          if (history.length > 10) history.pop();
-        }
-        localStorage.setItem('watchHistory', JSON.stringify(history));
-        renderHistory();
-        currentHistoryIndex = 0; // Reset index to the new "now playing" item
-      }
     }
 
     function updateLocalStorage() {
@@ -107,21 +82,6 @@
       });
     }
 
-    function renderHistory() {
-      historyList.innerHTML = '';
-      history.forEach((item, index) => {
-        const li = document.createElement('li');
-        li.textContent = item.name;
-        li.className = `cursor-pointer hover:underline ${index === currentHistoryIndex ? 'font-bold text-blue-600' : ''}`;
-        li.onclick = () => {
-            playUrl(item.url, item.name);
-            currentHistoryIndex = index; // Update index when clicked from history
-            renderHistory(); // Re-render to update highlight
-        };
-        historyList.appendChild(li);
-      });
-    }
-
     function addChannelItem({group, name, url}, save = false, isManual = false) {
       const li = document.createElement('li');
       li.className = 'p-2 bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 rounded flex justify-between items-center';
@@ -129,7 +89,7 @@
       const title = document.createElement('span');
       title.textContent = `${name}`;
       title.className = 'cursor-pointer';
-      title.addEventListener('click', () => playUrl(url, name));
+      title.addEventListener('click', () => playUrl(url));
 
       const controls = document.createElement('div');
       controls.className = 'flex gap-2 items-center';
@@ -232,23 +192,89 @@
         const name = prompt('Kanal adı giriniz:', url) || url;
         const group = 'Manuel';
         addChannelItem({ group, name, url }, true, true);
-        playUrl(url, name);
+        playUrl(url);
         manualUrlInput.value = '';
       } else {
         alert('Geçerli bir .m3u8 URL girin.');
       }
     });
 
+    // New function to load M3U playlist
+    async function loadM3UPlaylist(url) {
+        try {
+            const response = await fetch(url);
+            const text = await response.text();
+            
+            const lines = text.split('\n');
+            const newChannels = [];
+            let currentGroup = 'Bilinmeyen Grup';
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith('#EXTINF')) {
+                    const groupMatch = line.match(/group-title="(.*?)"/);
+                    if (groupMatch && groupMatch[1]) {
+                        currentGroup = groupMatch[1];
+                    }
+
+                    const nameMatch = line.match(/,(.*)/);
+                    const name = nameMatch ? nameMatch[1].trim() : `Kanal ${newChannels.length + 1}`;
+                    
+                    const nextLine = lines[i + 1]?.trim();
+                    if (nextLine && nextLine.startsWith('http')) {
+                        const channelUrl = nextLine;
+                        newChannels.push({ group: currentGroup, name: name, url: channelUrl });
+                    }
+                } else if (line.startsWith('#EXTGRP')) {
+                    currentGroup = line.substring(line.indexOf(':') + 1).trim();
+                }
+            }
+
+            // Clear existing channels and add new ones from M3U
+            for (const group in channelsByGroup) {
+                delete channelsByGroup[group];
+            }
+            newChannels.forEach(channel => {
+                if (!channelsByGroup[channel.group]) {
+                    channelsByGroup[channel.group] = [];
+                }
+                channelsByGroup[channel.group].push(channel);
+            });
+
+            updateGroupDropdown();
+            if (Object.keys(channelsByGroup).length > 0) {
+                const firstGroup = Object.keys(channelsByGroup)[0];
+                channelGroupSelect.value = firstGroup;
+                renderChannels(channelsByGroup[firstGroup]);
+            }
+            alert('M3U çalma listesi başarıyla yüklendi!');
+
+        } catch (error) {
+            console.error('M3U çalma listesi yüklenirken hata oluştu:', error);
+            alert('M3U çalma listesi yüklenemedi. Lütfen URL\'yi kontrol edin.');
+        }
+    }
+
+    loadM3uBtn.addEventListener('click', () => {
+      const m3uUrl = m3uPlaylistUrlInput.value.trim();
+      if (m3uUrl) {
+        loadM3UPlaylist(m3uUrl);
+      } else {
+        alert('Lütfen geçerli bir M3U çalma listesi URL\'si girin.');
+      }
+    });
+
+
     manualChannels.forEach(chan => addChannelItem(chan, false, true));
     renderFavorites();
-    renderHistory();
 
     toggleTheme.addEventListener('click', () => {
       document.getElementById('appBody').classList.toggle('dark');
     });
 
     exportBtn.addEventListener('click', () => {
-      const data = { manualChannels, favorites: [...favorites], history };
+      // History removed from export
+      const data = { manualChannels, favorites: [...favorites] };
       const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -268,34 +294,12 @@
         if (data.favorites) {
           data.favorites.forEach(url => favorites.add(url));
         }
-        if (data.history) {
-          localStorage.setItem('watchHistory', JSON.stringify(data.history));
-        }
+        // History import removed
         updateLocalStorage();
         renderFavorites();
-        renderHistory();
       };
       reader.readAsText(file);
     });
-
-    // Navigation buttons for history
-    prevChannelBtn.addEventListener('click', () => {
-        if (currentHistoryIndex < history.length - 1) {
-            currentHistoryIndex++;
-            const channel = history[currentHistoryIndex];
-            playUrl(channel.url, channel.name);
-            renderHistory(); // Re-render to update highlight
-        }
-    });
-
-    nextChannelBtn.addEventListener('click', () => {
-        if (currentHistoryIndex > 0) {
-            currentHistoryIndex--;
-            const channel = history[currentHistoryIndex];
-            playUrl(channel.url, channel.name);
-            renderHistory(); // Re-render to update highlight
-        }
-    });
   </script>
 </body>
-</html>
+  </html>
