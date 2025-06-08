@@ -3,255 +3,396 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>m3u8 Player</title>
+  <title>Canlı Kanal Oynatıcı</title>
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 text-gray-800 p-4 transition-colors" id="appBody">
-  <header class="text-center mb-6">
-    <h1 class="text-3xl font-bold mb-2">🎬 Canlı Kanal Oynatıcı</h1>
-    <p class="text-sm text-gray-600">channel.txt içeriğini otomatik çekip listeleme + manuel URL ekleme</p>
-    <div class="mt-2 flex justify-center gap-2">
-      <button id="toggleTheme" class="px-4 py-1 bg-gray-300 rounded">🌗 Tema Değiştir</button>
-      <button id="exportBtn" class="px-4 py-1 bg-green-500 text-white rounded">⬇️ Dışa Aktar</button>
-      <input type="file" id="importFile" class="hidden">
-      <label for="importFile" class="px-4 py-1 bg-blue-600 text-white rounded cursor-pointer">⬆️ İçe Aktar</label>
-    </div>
-  </header>
+  <style>
+    /* Temel CSS */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden; /* Sayfanın kaymasını engelle */
+    }
+    #appBody {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background-color: #f3f4f6; /* bg-gray-100 */
+      color: #374151; /* text-gray-800 */
+      transition: background-color 0.3s, color 0.3s;
+    }
+    #appBody.dark {
+      background-color: #1f2937; /* dark:bg-gray-800 */
+      color: #e5e7eb; /* dark:text-gray-200 */
+    }
+    .dark .bg-white { background-color: #1f2937; } /* dark:bg-gray-800 */
+    .dark .text-gray-800 { color: #e5e7eb; } /* dark:text-gray-200 */
+    .dark .bg-gray-100 { background-color: #374151; } /* dark:bg-gray-700 */
+    .dark .border { border-color: #4b5563; } /* dark:border-gray-600 */
+    .dark .placeholder-gray-500::placeholder { color: #9ca3af; } /* dark:placeholder-gray-400 */
 
-  <div class="flex flex-col lg:flex-row gap-6">
-    <aside class="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 w-full lg:w-1/3 max-h-[80vh] overflow-y-auto">
-      <h2 class="text-lg font-semibold mb-4">Kanal Listesi</h2>
-      <input type="text" id="searchBox" placeholder="Kanal ara..." class="w-full p-2 border rounded mb-3">
-      <select id="channelGroup" class="w-full mb-4 p-2 border rounded">
-        <option disabled selected>Grup Seçiniz</option>
-      </select>
-      <ul id="channelList" class="space-y-2 mb-4"></ul>
-      <div class="mt-4">
-        <input type="text" id="manualUrl" placeholder="m3u8 linkini yapıştırın" class="w-full p-2 border rounded mb-2">
-        <button id="addBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">Ekle & Oynat</button>
-      </div>
-      <h3 class="text-sm mt-6 font-bold">⭐ Favoriler</h3>
-      <ul id="favoritesList" class="space-y-1 text-sm"></ul>
-    </aside>
+    /* Yan panelin gizlenme/görünme animasyonu */
+    #sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+      position: fixed; /* Mobilde üst üste binmesin */
+      height: 100vh; /* Tam yüksekliği kapla */
+      top: 0;
+      left: 0;
+      z-index: 50; /* Player'ın altında kalmasın */
+      box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+    }
+    #sidebar.open {
+      transform: translateX(0);
+    }
 
-    <main class="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 w-full lg:w-2/3">
-      <video id="videoPlayer" controls class="w-full rounded-xl bg-black aspect-video"></video>
-      <h3 class="mt-4 font-semibold">📜 İzleme Geçmişi</h3>
-      <ul id="historyList" class="text-sm mt-2 space-y-1"></ul>
-    </main>
-  </div>
-
-  <script>
-    const channelListEl = document.getElementById('channelList');
-    const videoPlayer = document.getElementById('videoPlayer');
-    const manualUrlInput = document.getElementById('manualUrl');
-    const addBtn = document.getElementById('addBtn');
-    const channelGroupSelect = document.getElementById('channelGroup');
-    const searchBox = document.getElementById('searchBox');
-    const favoritesList = document.getElementById('favoritesList');
-    const historyList = document.getElementById('historyList');
-    const toggleTheme = document.getElementById('toggleTheme');
-    const exportBtn = document.getElementById('exportBtn');
-    const importFile = document.getElementById('importFile');
-
-    const channelsByGroup = {};
-    const manualChannels = JSON.parse(localStorage.getItem('manualChannels') || '[]');
-    const favorites = new Set(JSON.parse(localStorage.getItem('favoriteChannels') || '[]'));
-    const history = JSON.parse(localStorage.getItem('watchHistory') || '[]');
-
-    function playUrl(url, name = '') {
-      videoPlayer.src = url;
-      videoPlayer.play().catch(e => console.error('Oynatma hatası:', e));
-      if (name) {
-        history.unshift({ name, url });
-        if (history.length > 10) history.pop();
-        localStorage.setItem('watchHistory', JSON.stringify(history));
-        renderHistory();
+    /* Masaüstü görünümde yan panel her zaman görünür */
+    @media (min-width: 1024px) { /* lg breakpoint */
+      #sidebar {
+        position: static; /* Fixed konumdan çıkar */
+        transform: translateX(0); /* Her zaman görünür */
+        height: auto; /* İçeriğe göre yükseklik */
+        box-shadow: none;
+      }
+      #sidebar-toggle {
+        display: none; /* Masaüstünde butonu gizle */
       }
     }
 
-    function updateLocalStorage() {
-      localStorage.setItem('manualChannels', JSON.stringify(manualChannels));
-      localStorage.setItem('favoriteChannels', JSON.stringify([...favorites]));
+    /* Player kontrolleri için overlay */
+    #videoPlayerContainer {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16/9; /* Videonun en-boy oranını koru */
+        background-color: black;
     }
 
-    function renderFavorites() {
-      favoritesList.innerHTML = '';
-      [...favorites].forEach(url => {
-        const li = document.createElement('li');
-        li.textContent = url;
-        li.className = 'cursor-pointer hover:underline';
-        li.onclick = () => playUrl(url);
-        favoritesList.appendChild(li);
-      });
+    #navArrows {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 10px;
+        z-index: 10; /* Okların videonun üzerinde olmasını sağla */
+        pointer-events: none; /* Okların dışına tıklama geçsin */
     }
 
-    function renderHistory() {
-      historyList.innerHTML = '';
-      history.forEach(item => {
-        const li = document.createElement('li');
-        li.textContent = item.name;
-        li.className = 'cursor-pointer hover:underline';
-        li.onclick = () => playUrl(item.url);
-        historyList.appendChild(li);
-      });
+    .nav-arrow {
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        font-size: 2.5rem;
+        padding: 5px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        user-select: none;
+        pointer-events: all; /* Okların kendisi tıklanabilir olsun */
+        opacity: 0.5;
+        transition: opacity 0.2s;
     }
 
-    function addChannelItem({group, name, url}, save = false, isManual = false) {
+    .nav-arrow:hover {
+        opacity: 0.9;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mpegts.js@latest/dist/mpegts.min.js"></script>
+</head>
+<body id="appBody">
+  <header class="text-center mb-4 p-4 lg:mb-6">
+    <h1 class="text-3xl font-bold mb-2">🎬 Canlı Kanal Oynatıcı</h1>
+    <button id="sidebar-toggle" class="lg:hidden px-4 py-1 bg-gray-300 dark:bg-gray-700 rounded text-gray-800 dark:text-gray-200">
+      ☰ Kanal Listesi
+    </button>
+  </header>
+
+  <div class="flex flex-col lg:flex-row flex-grow gap-6 p-4 pt-0">
+    <aside id="sidebar" class="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 w-full lg:w-1/3 max-h-[calc(100vh-80px)] overflow-y-auto lg:relative lg:flex-shrink-0">
+      <h2 class="text-lg font-semibold mb-4">Kanal Listesi</h2>
+      <input type="text" id="searchBox" placeholder="Kanal ara..." class="w-full p-2 border rounded mb-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400">
+      <select id="channelGroup" class="w-full mb-4 p-2 border rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+        <option value="" disabled selected>Grup Seçiniz</option>
+      </select>
+      <ul id="channelList" class="space-y-2 mb-4"></ul>
+      <div class="mt-4">
+        <input type="text" id="m3uPlaylistUrlInput" placeholder="M3U Playlist URL yapıştırın" class="w-full p-2 border rounded mb-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400">
+        <button id="loadM3uUrlBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">M3U Playlist Yükle & Oynat</button>
+      </div>
+    </aside>
+
+    <main class="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 w-full lg:w-2/3 flex-grow">
+      <div id="videoPlayerContainer">
+        <video id="videoPlayer" controls class="w-full rounded-xl bg-black aspect-video"></video>
+        <div id="navArrows">
+            <span id="prevChannel" class="nav-arrow">◀️</span>
+            <span id="nextChannel" class="nav-arrow">▶️</span>
+        </div>
+      </div>
+      </main>
+  </div>
+
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+    const channelListEl = document.getElementById('channelList');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const m3uPlaylistUrlInput = document.getElementById('m3uPlaylistUrlInput');
+    const loadM3uUrlBtn = document.getElementById('loadM3uUrlBtn');
+    const channelGroupSelect = document.getElementById('channelGroup');
+    const searchBox = document.getElementById('searchBox');
+    const prevChannelBtn = document.getElementById('prevChannel'); // Yeni
+    const nextChannelBtn = document.getElementById('nextChannel'); // Yeni
+
+    let channelsByGroup = {};
+    let allChannels = []; // Tüm kanalları tek bir listede tut
+    let currentChannelIndex = -1; // Oynatılan kanalın indeksi
+    let hls; // HLS.js instance
+    let mpegtsPlayer; // mpegts.js instance
+
+    // Player fonksiyonları
+    function destroyCurrentPlayer() {
+        if (hls) {
+            hls.destroy();
+            hls = null;
+        }
+        if (mpegtsPlayer) {
+            mpegtsPlayer.destroy();
+            mpegtsPlayer = null;
+        }
+        videoPlayer.removeAttribute('src');
+        videoPlayer.load();
+        videoPlayer.pause();
+    }
+
+    function playStream(url) {
+      destroyCurrentPlayer();
+
+      const isTS = url.toLowerCase().endsWith('.ts');
+      const isM3U8 = url.toLowerCase().endsWith('.m3u8');
+      const isM3U = url.toLowerCase().endsWith('.m3u');
+
+      if (isTS) {
+           console.log("TS yayını oynatılıyor:", url);
+           if (mpegts.isSupported()) {
+               mpegtsPlayer = mpegts.createPlayer({ type: 'mpegts', url: url });
+               mpegtsPlayer.attachMediaElement(videoPlayer);
+               mpegtsPlayer.on(mpegts.Events.ERROR, function(e) {
+                   console.error('mpegts.js error:', e);
+                   // Hata durumunda autoplay'i dene veya kullanıcıya bilgi ver
+               });
+               mpegtsPlayer.on(mpegts.Events.LOADING_COMPLETE, () => {
+                   videoPlayer.muted = false;
+                   videoPlayer.volume = 1.0;
+                   videoPlayer.play().catch(err => console.warn("TS video play failed (autoplay policy):", err));
+               });
+               mpegtsPlayer.load();
+           } else {
+               console.error("Tarayıcı TS yayınını desteklemiyor.");
+           }
+      } else if (isM3U8 || isM3U || (!isTS && !isM3U8)) { // .m3u8, .m3u veya uzantısız (HLS varsayımı)
+          console.log("HLS yayını oynatılıyor:", url);
+          if (Hls.isSupported()) {
+              hls = new Hls();
+              hls.on(Hls.Events.ERROR, function (event, data) {
+                  console.error('HLS.js error:', data);
+                  if (data.fatal) {
+                      switch(data.type) {
+                          case Hls.ErrorTypes.MEDIA_ERROR: hls.recoverMediaError(); break;
+                          case Hls.ErrorTypes.NETWORK_ERROR: hls.loadSource(url); break;
+                          default: break;
+                      }
+                  }
+              });
+              hls.loadSource(url);
+              hls.attachMedia(videoPlayer);
+              hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                  videoPlayer.muted = false;
+                  videoPlayer.volume = 1.0;
+                  videoPlayer.play().catch(err => console.warn("HLS video play failed (autoplay policy):", err));
+              });
+          } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+              videoPlayer.src = url;
+              videoPlayer.addEventListener('loadedmetadata', () => {
+                  videoPlayer.muted = false;
+                  videoPlayer.volume = 1.0;
+                  videoPlayer.play().catch(err => console.warn("Native video play failed:", err));
+              });
+              videoPlayer.load();
+          } else {
+            console.error("Tarayıcı bu HLS yayınını desteklemiyor.");
+          }
+      } else {
+           console.warn("Desteklenmeyen dosya uzantısı veya URL formatı:", url);
+           alert("Desteklenmeyen dosya uzantısı (.ts veya .m3u8 değil) veya geçersiz URL formatı.");
+      }
+    }
+
+    // M3U dosyasını ayrıştırma fonksiyonu
+    function parseM3U(content) {
+      const lines = content.split(/\r?\n/);
+      const entries = [];
+      let title = "", url = "", group = "";
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith("#EXTINF:")) {
+          const match = line.match(/group-title="(.*?)".*?,(.*)$/);
+          if (match) {
+            group = match[1].trim();
+            title = match[2].trim();
+          } else {
+            const fallbackMatch = line.match(/,(.*)$/);
+            title = fallbackMatch ? fallbackMatch[1].trim() : "Bilinmeyen Yayın";
+            group = "Diğer";
+          }
+        } else if (line.startsWith("http")) {
+           if (title || group) {
+             entries.push({ title, url: line, group });
+           } else {
+             entries.push({ title: "Bilinmeyen Yayın", url: line, group: "Diğer" });
+           }
+          title = group = "";
+        }
+      }
+      return entries;
+    }
+
+    function addChannelItem({group, name, url}, isManual = false) {
       const li = document.createElement('li');
-      li.className = 'p-2 bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 rounded flex justify-between items-center';
+      li.className = 'p-2 bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-800 rounded flex justify-between items-center';
 
       const title = document.createElement('span');
       title.textContent = `${name}`;
       title.className = 'cursor-pointer';
-      title.addEventListener('click', () => playUrl(url, name));
-
-      const controls = document.createElement('div');
-      controls.className = 'flex gap-2 items-center';
-
-      const favBtn = document.createElement('button');
-      favBtn.textContent = favorites.has(url) ? '⭐' : '☆';
-      favBtn.className = 'text-xl';
-      favBtn.addEventListener('click', () => {
-        if (favorites.has(url)) {
-          favorites.delete(url);
-          favBtn.textContent = '☆';
-        } else {
-          favorites.add(url);
-          favBtn.textContent = '⭐';
-        }
-        updateLocalStorage();
-        renderFavorites();
+      title.addEventListener('click', () => {
+          playUrl(url);
+          currentChannelIndex = allChannels.findIndex(c => c.url === url); // Seçilen kanalı güncel indeksi kaydet
       });
 
-      controls.appendChild(favBtn);
-
-      if (isManual) {
-        const delBtn = document.createElement('button');
-        delBtn.textContent = '🗑️';
-        delBtn.className = 'text-xl';
-        delBtn.addEventListener('click', () => {
-          li.remove();
-          const index = manualChannels.findIndex(c => c.url === url);
-          if (index !== -1) {
-            manualChannels.splice(index, 1);
-            updateLocalStorage();
-          }
-        });
-        controls.appendChild(delBtn);
-      }
-
       li.appendChild(title);
-      li.appendChild(controls);
       channelListEl.appendChild(li);
-
-      if (save) {
-        manualChannels.push({group, name, url});
-        updateLocalStorage();
-      }
     }
 
     function updateGroupDropdown() {
-      channelGroupSelect.innerHTML = '<option disabled selected>Grup Seçiniz</option>';
-      for (const group in channelsByGroup) {
+      channelGroupSelect.innerHTML = '<option value="">Tüm Gruplar</option>'; // 'disabled selected' kaldırıldı, varsayılan 'Tüm Gruplar'
+      const sortedGroups = Object.keys(channelsByGroup).sort();
+      sortedGroups.forEach(group => {
         const option = document.createElement('option');
         option.value = group;
         option.textContent = group;
         channelGroupSelect.appendChild(option);
-      }
+      });
+      // Tüm kanallar seçiliyken listeyi doldur
+      renderChannels(allChannels);
     }
 
     channelGroupSelect.addEventListener('change', (e) => {
       const group = e.target.value;
-      renderChannels(channelsByGroup[group]);
+      const filteredChannels = group ? allChannels.filter(c => c.group === group) : allChannels;
+      renderChannels(filteredChannels);
     });
 
     function renderChannels(channelArray) {
       channelListEl.innerHTML = '';
       const filter = searchBox.value.toLowerCase();
       channelArray.filter(c => c.name.toLowerCase().includes(filter))
+                  .sort((a,b) => a.name.localeCompare(b.name)) // Kanal isimlerine göre sırala
                   .forEach(c => addChannelItem(c));
     }
 
     searchBox.addEventListener('input', () => {
-      const group = channelGroupSelect.value;
-      if (channelsByGroup[group]) {
-        renderChannels(channelsByGroup[group]);
-      }
+      const selectedGroup = channelGroupSelect.value;
+      const channelsToFilter = selectedGroup ? allChannels.filter(c => c.group === selectedGroup) : allChannels;
+      renderChannels(channelsToFilter);
     });
 
-    fetch('channel.txt')
-      .then(res => res.text())
-      .then(text => {
-        const lines = text.split('\n');
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line.startsWith('#EXTINF')) {
-            const match = line.match(/group-title="(.*?)".*?,(.*)/);
-            if (match) {
-              const group = match[1];
-              const name = match[2];
-              const url = lines[i + 1]?.trim();
-              if (!channelsByGroup[group]) channelsByGroup[group] = [];
-              channelsByGroup[group].push({ group, name, url });
-            }
+    // M3U URL'sinden playlist yükle
+    loadM3uUrlBtn.addEventListener('click', () => {
+      const m3uUrl = m3uPlaylistUrlInput.value.trim();
+      if (!m3uUrl || !(m3uUrl.startsWith("http://") || m3uUrl.startsWith("https://"))) {
+        alert("Geçerli bir M3U playlist URL'si girin.");
+        return;
+      }
+
+      fetch(m3uUrl)
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
           }
-        }
-        updateGroupDropdown();
-      })
-      .catch(err => console.error('channel.txt yüklenemedi:', err));
+          return res.text();
+        })
+        .then(text => {
+          const entries = parseM3U(text);
+          if (entries.length === 0) {
+            alert("URL'den playlist bulunamadı veya ayrıştırılamadı.");
+            return;
+          }
+          channelsByGroup = {}; // Grupları sıfırla
+          allChannels = []; // Tüm kanalları sıfırla
+          entries.forEach(entry => {
+              if (!channelsByGroup[entry.group]) channelsByGroup[entry.group] = [];
+              channelsByGroup[entry.group].push(entry);
+              allChannels.push(entry);
+          });
+          updateGroupDropdown();
 
-    addBtn.addEventListener('click', () => {
-      const url = manualUrlInput.value.trim();
-      if (url && url.endsWith('.m3u8')) {
-        const name = prompt('Kanal adı giriniz:', url) || url;
-        const group = 'Manuel';
-        addChannelItem({ group, name, url }, true, true);
-        playUrl(url, name);
-        manualUrlInput.value = '';
-      } else {
-        alert('Geçerli bir .m3u8 URL girin.');
-      }
+          // İlk kanalı otomatik oynat
+          if (allChannels.length > 0) {
+              playUrl(allChannels[0].url);
+              currentChannelIndex = 0;
+          }
+        })
+        .catch(err => {
+          console.error('M3U URL yüklenemedi:', err);
+          alert(`M3U URL yüklenirken hata oluştu: ${err.message}`);
+        });
     });
 
-    manualChannels.forEach(chan => addChannelItem(chan, false, true));
-    renderFavorites();
-    renderHistory();
-
-    toggleTheme.addEventListener('click', () => {
-      document.getElementById('appBody').classList.toggle('dark');
+    // Sayfa yüklendiğinde varsayılan M3U URL'sini otomatik olarak yükle
+    document.addEventListener('DOMContentLoaded', () => {
+      const defaultM3UUrl = "https://raw.githubusercontent.com/Sakubaba00/saku/refs/heads/main/playlist4.m3u";
+      m3uPlaylistUrlInput.value = defaultM3UUrl; // Input kutusuna URL'yi önceden doldur
+      loadM3uUrlBtn.click(); // Otomatik olarak yükleme butonunu tetikle
     });
 
-    exportBtn.addEventListener('click', () => {
-      const data = { manualChannels, favorites: [...favorites], history };
-      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'kanallar.json';
-      link.click();
+    // Sidebar açma/kapama
+    sidebarToggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
     });
 
-    importFile.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const data = JSON.parse(reader.result);
-        if (data.manualChannels) {
-          data.manualChannels.forEach(c => addChannelItem(c, true, true));
+    // Ok tuşları ile kanal değiştirme
+    function changeChannel(direction) {
+        if (allChannels.length === 0) return;
+
+        let newIndex = currentChannelIndex + direction;
+
+        if (newIndex < 0) {
+            newIndex = allChannels.length - 1; // Başa dön
+        } else if (newIndex >= allChannels.length) {
+            newIndex = 0; // Sona dön
         }
-        if (data.favorites) {
-          data.favorites.forEach(url => favorites.add(url));
+
+        currentChannelIndex = newIndex;
+        playUrl(allChannels[currentChannelIndex].url);
+
+        // Seçilen kanalı dropdown'da veya listede vurgulamak isterseniz ekleme yapabilirsiniz.
+        // Örneğin: playlistSelect.value = allChannels[currentChannelIndex].url;
+    }
+
+    prevChannelBtn.addEventListener('click', () => changeChannel(-1));
+    nextChannelBtn.addEventListener('click', () => changeChannel(1));
+
+    // Klavye yön tuşları ile kanal değiştirme (isteğe bağlı)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            changeChannel(-1);
+        } else if (e.key === 'ArrowRight') {
+            changeChannel(1);
         }
-        if (data.history) {
-          localStorage.setItem('watchHistory', JSON.stringify(data.history));
-        }
-        updateLocalStorage();
-        renderFavorites();
-        renderHistory();
-      };
-      reader.readAsText(file);
     });
+
   </script>
 </body>
 </html>
