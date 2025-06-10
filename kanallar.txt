@@ -1,0 +1,3 @@
+ATV,https://tv-trt1.medya.trt.com.tr/master.m3u8
+TRT_SPOR,https://tv-trt1.medya.trt.com.tr/master.m3u8
+SINEMA_TV,https://tv-trt1.medya.trt.com.tr/master.m3u8
